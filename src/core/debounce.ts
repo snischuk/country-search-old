@@ -8,8 +8,24 @@ export function debounce<Arguments extends unknown[]>(
   callback: (...callbackArguments: Arguments) => void,
   delayMs: number,
 ): Debounced<Arguments> {
-  void callback;
-  void delayMs;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-  throw new Error('Not implemented');
+  const cancel: () => void = (): void => {
+    clearTimeout(timer);
+    timer = undefined;
+  };
+
+  const run: Debounced<Arguments> = (...callbackArguments: Arguments): void => {
+    cancel();
+
+    timer = setTimeout((): void => {
+      timer = undefined;
+
+      callback(...callbackArguments);
+    }, delayMs);
+  };
+
+  run.cancel = cancel;
+
+  return run;
 }
