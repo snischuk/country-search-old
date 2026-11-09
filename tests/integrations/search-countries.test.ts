@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Search } from '../core/country';
-import { HttpError, InvalidResponseError } from '../core/errors';
-import { createControlledFetch } from '../test/controlled-fetch';
-import { malformed, spain } from '../test/country-fixtures';
+import { createCountrySearch } from '../../src/api/search-countries';
+import type { Search } from '../../src/core/country';
+import { HttpError, InvalidResponseError } from '../../src/core/errors';
+import { malformed, spain } from '../unit/fixtures/country-fixtures';
 
-import { createCountrySearch } from './search-countries';
+import { createControlledFetch } from './helpers/controlled-fetch';
 
 function createHarness(): {
   search: Search;

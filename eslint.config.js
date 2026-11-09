@@ -44,7 +44,7 @@ export default [
     },
   },
   {
-    files: ['src/**/*.ts', 'e2e/**/*.ts'],
+    files: ['src/**/*.ts', 'tests/**/*.ts'],
     languageOptions: {
       parserOptions: {
         projectService: true,

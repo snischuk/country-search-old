@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createCountrySearch } from '../api/search-countries';
-import { createControlledFetch } from '../test/controlled-fetch';
-import { spain } from '../test/country-fixtures';
+import { createCountrySearch } from '../../src/api/search-countries';
+import type { SearchController, SearchState } from '../../src/core/country';
+import { createSearchController } from '../../src/core/search-controller';
+import { spain } from '../unit/fixtures/country-fixtures';
 
-import type { SearchController, SearchState } from './country';
-import { createSearchController } from './search-controller';
+import { createControlledFetch } from './helpers/controlled-fetch';
 
 describe('request races', (): void => {
   beforeEach((): void => {

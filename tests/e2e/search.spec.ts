@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page, Request, Route } from '@playwright/test';
 
-import { spain } from '../src/test/country-fixtures';
+import { spain } from '../unit/fixtures/country-fixtures';
 
 test('searches automatically, shows loading, clears old results immediately', async ({
   page,

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Country } from '../../src/core/country';
+import { InvalidResponseError } from '../../src/core/errors';
+import { mapCountryResponse } from '../../src/core/map-country-response';
+
 import {
   island,
   malformed,
   markup,
   spain,
   urlFlag,
-} from '../test/country-fixtures';
-
-import type { Country } from './country';
-import { InvalidResponseError } from './errors';
-import { mapCountryResponse } from './map-country-response';
+} from './fixtures/country-fixtures';
 
 describe('mapCountryResponse', (): void => {
   it('maps flat provider fields without changing input', (): void => {

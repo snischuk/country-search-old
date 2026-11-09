@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { HttpError, InvalidResponseError, classifySearchError } from './errors';
+import {
+  HttpError,
+  InvalidResponseError,
+  classifySearchError,
+} from '../../src/core/errors';
 
 describe('search errors', (): void => {
   it('retains HTTP status and Error behavior', (): void => {

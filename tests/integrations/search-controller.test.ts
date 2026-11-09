@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createCountrySearch } from '../api/search-countries';
-import { createControlledFetch } from '../test/controlled-fetch';
-import { spain } from '../test/country-fixtures';
-
+import { createCountrySearch } from '../../src/api/search-countries';
 import type {
   Country,
   Listener,
   Search,
   SearchController,
   SearchState,
-} from './country';
-import { HttpError, InvalidResponseError } from './errors';
-import { mapCountryResponse } from './map-country-response';
-import { createSearchController } from './search-controller';
+} from '../../src/core/country';
+import { HttpError, InvalidResponseError } from '../../src/core/errors';
+import { mapCountryResponse } from '../../src/core/map-country-response';
+import { createSearchController } from '../../src/core/search-controller';
+import { spain } from '../unit/fixtures/country-fixtures';
+
+import { createControlledFetch } from './helpers/controlled-fetch';
 
 const country: Country = mapCountryResponse(spain);
 
