@@ -53,17 +53,21 @@ export function createCountryDetails(
 
       const heading: HTMLHeadingElement = document.createElement('h2');
       const languageNames: string =
-        country.languages
-          ?.map((language: Language): string => language.name)
-          .join(', ') || 'Not available';
+        country.languages === null
+          ? 'Not available'
+          : country.languages
+              .map((language: Language): string => language.name)
+              .join(', ') || 'No languages listed';
       const currencyNames: string =
-        country.currencies
-          ?.map((currency: Currency): string =>
-            [currency.name, currency.code, currency.symbol]
-              .filter(Boolean)
-              .join(' · '),
-          )
-          .join(', ') || 'Not available';
+        country.currencies === null
+          ? 'Not available'
+          : country.currencies
+              .map((currency: Currency): string =>
+                [currency.name, currency.code, currency.symbol]
+                  .filter(Boolean)
+                  .join(' · '),
+              )
+              .join(', ') || 'No currencies listed';
 
       heading.id = 'country-details-title';
       heading.textContent = country.name;
