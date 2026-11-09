@@ -94,7 +94,7 @@ test('aborts the obsolete request and keeps the latest result', async ({
   });
 
   await expect(page.getByText('Obsolete country')).toHaveCount(0);
-  await expect(page.getByRole('alert')).toBeEmpty();
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('distinguishes no matches from failures and retries once', async ({
@@ -220,3 +220,81 @@ for (let runIndex: number = 1; runIndex <= 10; runIndex += 1) {
       .annotations.push({ type: 'renderMs', description: String(renderMs) });
   });
 }
+
+test('shows timeout as a retryable failure rather than silent cancellation', async ({
+  page,
+}: {
+  page: Page;
+}): Promise<void> => {
+  await page.addInitScript((): void => {
+    const createTimeoutSignal: typeof AbortSignal.timeout = AbortSignal.timeout;
+
+    AbortSignal.timeout = (timeoutMs: number): AbortSignal =>
+      createTimeoutSignal(Math.min(timeoutMs, 50));
+  });
+  await page.route('https://countries.dev/**', (): void => {
+    /* Keep the response pending until timeout aborts fetch. */
+  });
+  await page.goto('/');
+  await page.getByRole('searchbox').fill('spain');
+
+  await expect(page.getByRole('alert')).toContainText('took too long');
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+  await expect(page.getByRole('status')).not.toContainText('Searching');
+});
+
+test('handles missing fields, failed flag images and untrusted country text', async ({
+  page,
+}: {
+  page: Page;
+}): Promise<void> => {
+  const countryName: string = '<b>Example Island</b>';
+
+  await page.route(
+    'https://countries.dev/**',
+    async (route: Route): Promise<void> => {
+      await route.fulfill({
+        json: [
+          {
+            alpha3Code: 'TST',
+            name: countryName,
+            borders: [],
+            population: 0,
+            flags: { svg: 'https://example.com/flag.svg' },
+          },
+        ],
+      });
+    },
+  );
+  await page.route(
+    'https://example.com/**',
+    async (route: Route): Promise<void> => {
+      await route.abort();
+    },
+  );
+  await page.goto('/');
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.getByRole('searchbox').fill('island');
+
+  await expect(page.getByTestId('country-card')).toContainText(countryName);
+  await expect(page.getByTestId('country-card')).toContainText(
+    'Flag unavailable',
+  );
+  await expect(page.getByTestId('country-card').locator('b')).toHaveCount(0);
+
+  expect(
+    await page.evaluate(
+      (): boolean => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+
+  await page.getByTestId('country-card').click();
+
+  await expect(page.getByRole('dialog')).toContainText('No land borders');
+  await expect(page.getByRole('dialog')).toContainText('Not available');
+
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByTestId('country-card')).toBeFocused();
+});
