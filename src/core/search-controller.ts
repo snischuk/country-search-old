@@ -19,6 +19,8 @@ export function createSearchController(
 ): SearchController {
   let state: SearchState = { status: 'idle', input: '', query: '' };
   let isDisposed: boolean = false;
+  let requestRevision: number = 0;
+  let activeRequest: AbortController | null = null;
   const subscribers: Set<Listener> = new Set();
 
   function updateState(nextState: SearchState): void {
@@ -36,6 +38,18 @@ export function createSearchController(
     const input: string = state.input;
     const query: string = state.query;
     const requestController: AbortController = new AbortController();
+    const revision: number = requestRevision;
+
+    activeRequest = requestController;
+
+    function isCurrentRequest(): boolean {
+      return (
+        !isDisposed &&
+        revision === requestRevision &&
+        activeRequest === requestController &&
+        !requestController.signal.aborted
+      );
+    }
 
     updateState({ status: 'loading', input, query });
 
@@ -44,6 +58,12 @@ export function createSearchController(
         query,
         requestController.signal,
       );
+
+      if (!isCurrentRequest()) {
+        return;
+      }
+
+      activeRequest = null;
 
       updateState(
         countries.length
@@ -57,6 +77,12 @@ export function createSearchController(
           : { status: 'empty', input, query },
       );
     } catch (error: unknown) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
+      activeRequest = null;
+
       updateState({
         status: 'error',
         input,
@@ -76,7 +102,10 @@ export function createSearchController(
         return;
       }
 
+      requestRevision += 1;
       scheduleSearch.cancel();
+      activeRequest?.abort();
+      activeRequest = null;
 
       const query: string = input.trim();
 
@@ -100,7 +129,10 @@ export function createSearchController(
       };
     },
     dispose(): void {
+      requestRevision += 1;
       scheduleSearch.cancel();
+      activeRequest?.abort();
+      activeRequest = null;
       isDisposed = true;
       subscribers.clear();
     },
