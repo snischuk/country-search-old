@@ -137,6 +137,10 @@ export function createSearchController(
       activeRequest = null;
       isDisposed = true;
       subscribers.clear();
+
+      if (state.status === 'results') {
+        state = Object.freeze({ ...state, selectedCountryId: null });
+      }
     },
     retry(): void {
       if (isDisposed || state.status !== 'error' || !state.query) {
