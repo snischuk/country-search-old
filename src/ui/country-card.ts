@@ -54,7 +54,10 @@ export function createCountryCard(
   hint.className = 'card-hint';
   hint.textContent = 'Explore country →';
   card.append(createCountryFlag(country), heading, facts, hint);
-  card.addEventListener('click', (): void => onCountrySelect(country.id));
+  card.addEventListener('click', (): void => {
+    card.focus();
+    onCountrySelect(country.id);
+  });
 
   return card;
 }
