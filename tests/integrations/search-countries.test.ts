@@ -196,3 +196,40 @@ describe('searchCountries', (): void => {
     });
   });
 });
+
+it('preserves the timeout reason when the browser reports a generic AbortError', async (): Promise<void> => {
+  const timeoutController: AbortController = new AbortController();
+  const timeoutReason: DOMException = new DOMException(
+    'Expired',
+    'TimeoutError',
+  );
+  const search: Search = createCountrySearch({
+    fetch: (input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+      new Promise(
+        (
+          resolve: (response: Response) => void,
+          reject: (reason: unknown) => void,
+        ): void => {
+          void input;
+          void resolve;
+          init?.signal?.addEventListener(
+            'abort',
+            (): void => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            },
+            { once: true },
+          );
+        },
+      ),
+    createTimeoutSignal: (): AbortSignal => timeoutController.signal,
+  });
+  const pending: ReturnType<Search> = search(
+    'spain',
+    new AbortController().signal,
+  );
+  const assertion: Promise<void> = expect(pending).rejects.toBe(timeoutReason);
+
+  timeoutController.abort(timeoutReason);
+
+  await assertion;
+});
