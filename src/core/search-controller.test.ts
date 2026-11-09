@@ -311,3 +311,59 @@ describe('search recovery', (): void => {
     expect(controller.getState().status).not.toBe('loading');
   });
 });
+
+describe('country selection', (): void => {
+  beforeEach((): void => {
+    vi.useFakeTimers();
+  });
+  afterEach((): void => {
+    vi.useRealTimers();
+  });
+
+  it('selects only a current result and closing preserves input/results', async (): Promise<void> => {
+    const controller: SearchController = createSearchController({
+      search: async (): Promise<Country[]> => [country],
+    });
+
+    controller.setInput('spain');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.selectCountry('missing');
+
+    expect(controller.getState()).toMatchObject({ selectedCountryId: null });
+
+    controller.selectCountry('ESP');
+
+    expect(controller.getState()).toMatchObject({ selectedCountryId: 'ESP' });
+
+    controller.closeDetails();
+
+    expect(controller.getState()).toMatchObject({
+      status: 'results',
+      query: 'spain',
+      countries: [country],
+      selectedCountryId: null,
+    });
+  });
+
+  it('clears selection on edit and ignores selection outside results', async (): Promise<void> => {
+    const controller: SearchController = createSearchController({
+      search: async (): Promise<Country[]> => [country],
+    });
+
+    controller.selectCountry('ESP');
+    controller.closeDetails();
+    controller.setInput('spain');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.selectCountry('ESP');
+    controller.setInput('iceland');
+    controller.selectCountry('ESP');
+
+    expect(controller.getState()).toEqual({
+      status: 'waiting',
+      query: 'iceland',
+      input: 'iceland',
+    });
+
+    controller.dispose();
+  });
+});
