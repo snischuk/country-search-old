@@ -8,9 +8,13 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   outputDir: 'test-results',
+  projects: [
+    { name: 'chrome', use: { browserName: 'chromium', channel: 'chrome' } },
+    { name: 'firefox', use: { browserName: 'firefox' } },
+    { name: 'webkit', use: { browserName: 'webkit' } },
+  ],
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    channel: 'chrome',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

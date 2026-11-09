@@ -2,12 +2,19 @@
 
 ## Browser tests
 
-Playwright uses installed Google Chrome. Install dependencies with `npm ci` and
-ensure Google Chrome is available before running the tests.
+Playwright runs Chrome, Firefox, and WebKit projects. Chrome uses the installed
+Google Chrome application; install the managed Firefox and WebKit engines after `npm ci`:
+
+```sh
+npx playwright install firefox webkit
+```
+
+WebKit engine results are not a substitute for a separately recorded Safari check.
 
 ```sh
 npm run test:e2e
 npm run test:e2e:ui
+npm run test:e2e -- --project=chrome
 ```
 
 The runner starts Vite on `http://127.0.0.1:4173` and stops it after the run.
