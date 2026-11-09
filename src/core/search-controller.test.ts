@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCountrySearch } from '../api/search-countries';
+import { createControlledFetch } from '../test/controlled-fetch';
 import { spain } from '../test/country-fixtures';
 
 import type {
@@ -129,5 +131,91 @@ describe('search controller', (): void => {
     await vi.runAllTimersAsync();
 
     expect(searchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('search cancellation', (): void => {
+  beforeEach((): void => {
+    vi.useFakeTimers();
+  });
+  afterEach((): void => {
+    vi.useRealTimers();
+  });
+
+  it('aborts synchronously on every edit before debounce expires', async (): Promise<void> => {
+    const network: ReturnType<typeof createControlledFetch> =
+      createControlledFetch();
+    const controller: SearchController = createSearchController({
+      search: createCountrySearch({
+        fetch: network.fetch,
+        createTimeoutSignal: (): AbortSignal => new AbortController().signal,
+      }),
+    });
+
+    controller.setInput('sp');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.setInput('spain');
+
+    expect(network.requests[0]?.signal.aborted).toBe(true);
+    expect(network.requests).toHaveLength(1);
+    expect(controller.getState().status).toBe('waiting');
+
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(network.requests).toHaveLength(2);
+    expect(controller.getState().status).toBe('loading');
+
+    controller.dispose();
+
+    expect(network.requests[1]?.signal.aborted).toBe(true);
+  });
+
+  it('keeps empty state after clearing an active query', async (): Promise<void> => {
+    const network: ReturnType<typeof createControlledFetch> =
+      createControlledFetch();
+    const controller: SearchController = createSearchController({
+      search: createCountrySearch({
+        fetch: network.fetch,
+        createTimeoutSignal: (): AbortSignal => new AbortController().signal,
+      }),
+    });
+
+    controller.setInput('sp');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.setInput('');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(network.requests[0]?.signal.aborted).toBe(true);
+    expect(controller.getState()).toEqual({
+      status: 'idle',
+      input: '',
+      query: '',
+    });
+  });
+
+  it('ignores non-cooperative late completions during the waiting window', async (): Promise<void> => {
+    let resolveSearch: (countries: Country[]) => void = (): void => {
+      throw new Error('Search not started');
+    };
+
+    const search: Search = (): Promise<Country[]> =>
+      new Promise((resolve: (countries: Country[]) => void): void => {
+        resolveSearch = resolve;
+      });
+    const controller: SearchController = createSearchController({ search });
+
+    controller.setInput('sp');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.setInput('spain');
+    resolveSearch([country]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(controller.getState()).toEqual({
+      status: 'waiting',
+      input: 'spain',
+      query: 'spain',
+    });
+
+    controller.dispose();
   });
 });
