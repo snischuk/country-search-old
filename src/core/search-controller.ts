@@ -3,6 +3,7 @@ import type {
   Listener,
   Search,
   SearchController,
+  SearchFailure,
   SearchState,
 } from './country';
 import { debounce } from './debounce';
@@ -83,12 +84,13 @@ export function createSearchController(
 
       activeRequest = null;
 
-      updateState({
-        status: 'error',
-        input,
-        query,
-        failure: classifySearchError(error),
-      });
+      const failure: SearchFailure = classifySearchError(error);
+
+      updateState(
+        failure.kind === 'cancelled'
+          ? { status: 'idle', input, query }
+          : { status: 'error', input, query, failure },
+      );
     }
   }
 
@@ -137,7 +139,15 @@ export function createSearchController(
       subscribers.clear();
     },
     retry(): void {
-      throw new Error('Not implemented');
+      if (isDisposed || state.status !== 'error' || !state.query) {
+        return;
+      }
+
+      requestRevision += 1;
+      scheduleSearch.cancel();
+      activeRequest?.abort();
+      activeRequest = null;
+      void runSearch();
     },
     selectCountry(id: string): void {
       void id;
