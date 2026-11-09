@@ -53,6 +53,17 @@ describe('mapCountryResponse', (): void => {
     ).toBeNull();
   });
 
+  it('falls back to alpha2Code when alpha3Code is empty', (): void => {
+    const rawCountry: Record<string, unknown> = {
+      ...island,
+      alpha3Code: '   ',
+    };
+
+    const country: Country = mapCountryResponse(rawCountry);
+
+    expect(country.id).toBe('IS');
+  });
+
   it('supports documented flag shapes and rejects unsafe URL schemes', (): void => {
     expect(mapCountryResponse(urlFlag).flag).toEqual({
       kind: 'image',
