@@ -367,3 +367,38 @@ describe('country selection', (): void => {
     controller.dispose();
   });
 });
+
+describe('controller disposal', (): void => {
+  beforeEach((): void => {
+    vi.useFakeTimers();
+  });
+  afterEach((): void => {
+    vi.useRealTimers();
+  });
+
+  it('clears selected country without notifying subscribers', async (): Promise<void> => {
+    const controller: SearchController = createSearchController({
+      search: async (): Promise<Country[]> => [country],
+      debounceDelayMs: 0,
+    });
+    const onSearchStateChange: ReturnType<typeof vi.fn<Listener>> =
+      vi.fn<Listener>();
+
+    controller.subscribe(onSearchStateChange);
+    controller.setInput('spain');
+    await vi.advanceTimersByTimeAsync(0);
+    controller.selectCountry('ESP');
+    onSearchStateChange.mockClear();
+    controller.dispose();
+
+    expect(controller.getState()).toMatchObject({
+      status: 'results',
+      selectedCountryId: null,
+    });
+    expect(onSearchStateChange).not.toHaveBeenCalled();
+
+    controller.selectCountry('ESP');
+
+    expect(controller.getState()).toMatchObject({ selectedCountryId: null });
+  });
+});
