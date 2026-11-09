@@ -150,11 +150,17 @@ export function createSearchController(
       void runSearch();
     },
     selectCountry(id: string): void {
-      void id;
-      throw new Error('Not implemented');
+      if (
+        state.status === 'results' &&
+        state.countries.some((country: Country): boolean => country.id === id)
+      ) {
+        updateState({ ...state, selectedCountryId: id });
+      }
     },
     closeDetails(): void {
-      throw new Error('Not implemented');
+      if (state.status === 'results' && state.selectedCountryId !== null) {
+        updateState({ ...state, selectedCountryId: null });
+      }
     },
   };
 }
