@@ -298,3 +298,28 @@ test('handles missing fields, failed flag images and untrusted country text', as
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByTestId('country-card')).toBeFocused();
 });
+
+test('distinguishes empty language and currency lists from unavailable data', async ({
+  page,
+}: {
+  page: Page;
+}): Promise<void> => {
+  await page.route(
+    'https://countries.dev/**',
+    async (route: Route): Promise<void> => {
+      await route.fulfill({
+        json: [{ ...spain, languages: [], currencies: [] }],
+      });
+    },
+  );
+  await page.goto('/');
+  await page.getByRole('searchbox').fill('spain');
+  await page.getByTestId('country-card').click();
+
+  await expect(
+    page.getByRole('dialog').getByText('No languages listed', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('dialog').getByText('No currencies listed', { exact: true }),
+  ).toBeVisible();
+});
