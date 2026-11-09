@@ -122,7 +122,9 @@ export function mapCountryResponse(raw: unknown): Country {
   const value: Record<string, unknown> = parseRecord(raw);
 
   return Object.freeze({
-    id: parseRequiredText(value.alpha3Code ?? value.alpha2Code),
+    id:
+      parseOptionalText(value.alpha3Code) ??
+      parseRequiredText(value.alpha2Code),
     name: parseRequiredText(value.name),
     flag: mapFlag(value),
     capital: parseOptionalText(value.capital),
