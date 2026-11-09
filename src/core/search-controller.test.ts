@@ -11,6 +11,7 @@ import type {
   SearchController,
   SearchState,
 } from './country';
+import { HttpError, InvalidResponseError } from './errors';
 import { mapCountryResponse } from './map-country-response';
 import { createSearchController } from './search-controller';
 
@@ -217,5 +218,96 @@ describe('search cancellation', (): void => {
     });
 
     controller.dispose();
+  });
+});
+
+describe('search recovery', (): void => {
+  beforeEach((): void => {
+    vi.useFakeTimers();
+  });
+  afterEach((): void => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    { failure: new TypeError('offline'), kind: 'network' },
+    { failure: new HttpError(500), kind: 'http' },
+    { failure: new HttpError(429), kind: 'http' },
+    { failure: new InvalidResponseError(), kind: 'invalid-response' },
+    { failure: new DOMException('timeout', 'TimeoutError'), kind: 'timeout' },
+  ])(
+    'classifies $kind and retries immediately once',
+    async ({
+      failure,
+      kind,
+    }: {
+      failure: Error;
+      kind: string;
+    }): Promise<void> => {
+      const searchMock: ReturnType<typeof vi.fn<Search>> = vi
+        .fn<Search>()
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValue([country]);
+      const controller: SearchController = createSearchController({
+        search: searchMock,
+      });
+
+      controller.setInput('spain');
+      await vi.advanceTimersByTimeAsync(300);
+
+      expect(controller.getState()).toMatchObject({
+        status: 'error',
+        failure: { kind },
+      });
+
+      controller.retry();
+      controller.retry();
+
+      expect(searchMock).toHaveBeenCalledTimes(2);
+      expect(controller.getState().status).toBe('loading');
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(controller.getState().status).toBe('results');
+    },
+  );
+
+  it('retries the latest failed query and never revives cleared input', async (): Promise<void> => {
+    const searchMock: ReturnType<typeof vi.fn<Search>> = vi
+      .fn<Search>()
+      .mockRejectedValue(new TypeError('offline'));
+    const controller: SearchController = createSearchController({
+      search: searchMock,
+    });
+
+    controller.setInput('sp');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.setInput('spain');
+    await vi.advanceTimersByTimeAsync(300);
+    controller.retry();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(searchMock.mock.calls[2]?.[0]).toBe('spain');
+
+    controller.setInput('');
+    controller.retry();
+    await vi.runAllTimersAsync();
+
+    expect(searchMock).toHaveBeenCalledTimes(3);
+    expect(controller.getState().status).toBe('idle');
+  });
+
+  it('never presents AbortError as a recoverable failure', async (): Promise<void> => {
+    const controller: SearchController = createSearchController({
+      search: async (): Promise<Country[]> => {
+        throw new DOMException('cancelled', 'AbortError');
+      },
+    });
+
+    controller.setInput('spain');
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(controller.getState().status).not.toBe('error');
+    expect(controller.getState().status).not.toBe('loading');
   });
 });
