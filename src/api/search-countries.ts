@@ -21,10 +21,18 @@ export function createCountrySearch(dependencies: SearchDependencies): Search {
       signal,
       dependencies.createTimeoutSignal(10000),
     ]);
-    const response: Response = await dependencies.fetch(
-      `https://countries.dev/name/${encodeURIComponent(trimmedQuery)}`,
-      { signal: requestSignal },
-    );
+    let response: Response;
+
+    try {
+      response = await dependencies.fetch(
+        `https://countries.dev/name/${encodeURIComponent(trimmedQuery)}`,
+        { signal: requestSignal },
+      );
+    } catch (error: unknown) {
+      requestSignal.throwIfAborted();
+
+      throw error;
+    }
 
     requestSignal.throwIfAborted();
 
