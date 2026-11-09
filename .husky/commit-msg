@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+commit_message_file=$1
+commit_subject=$(sed -n '1p' "$commit_message_file")
+
+allowed_types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+pattern="^(${allowed_types})(\([^()]+\))?!?: [^[:space:]].*$"
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+blue='\033[0;34m'
+bold='\033[1m'
+reset='\033[0m'
+
+if ! printf '%s\n' "$commit_subject" | grep -Eq "$pattern"; then
+  printf '\n%b✖ Invalid commit message%b\n\n' "$red$bold" "$reset"
+  printf '%b%s%b\n\n' "$yellow" "$commit_subject" "$reset"
+
+  printf '%bExpected format:%b type(scope): description\n' "$bold" "$reset"
+  printf '%bAllowed types:%b %s\n\n' "$bold" "$reset" "$allowed_types"
+
+  printf '%bExamples:%b\n' "$blue$bold" "$reset"
+  printf '  feat: add new capability\n'
+  printf '  test(core): cover core behavior\n'
+  printf '  style: format code with Prettier\n'
+  printf '  refactor(core): simplify module boundaries\n'
+  printf '  chore: update project tooling\n'
+  printf '  perf(core): reduce repeated work\n'
+  printf '  docs: clarify setup instructions\n'
+  printf '  ci: run checks on pull requests\n'
+  printf '  fix!: change behavior incompatibly\n'
+  printf '  feat(core)!: change public API\n\n'
+
+  exit 1
+fi
+
+printf '\n%b✔ Commit message is valid%b\n' "$green$bold" "$reset"
